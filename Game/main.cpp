@@ -38,10 +38,10 @@ unsigned char* grayIt(unsigned char* data) {
 }
 
 unsigned char* grayIt(unsigned char* data, int width, int height) {
-	printf("here 1");
+	
 	unsigned char* grayScale = (unsigned char*)malloc(width * height);
 	
-	printf("here 2");
+	
 	for (int i = 0; i < height; i++) {
 		for (int j = 0; j < width; j++) {
 			unsigned char val = (unsigned char)(
@@ -52,48 +52,38 @@ unsigned char* grayIt(unsigned char* data, int width, int height) {
 			grayScale[i * width + j] = val;
 		}
 	}
-	printf("here 3");
 	return grayScale;
 }
 
 unsigned char* finalTouch(unsigned char* data, unsigned char* original) {
-	unsigned char* finalTouch = (unsigned char*)calloc(512 * 512 * 4, 1);
-	unsigned char(*finalTouch2D)[512 * 4] = (unsigned char(*)[512 * 4])finalTouch;
+	unsigned char* finalTouch = (unsigned char*)calloc(512 * 512, 1);
+	unsigned char(*finalTouch2D)[1024] = (unsigned char(*)[1024])finalTouch;
 	unsigned char(*data2D)[256] = (unsigned char(*)[256])data;
-	unsigned char(*original2D)[512 * 4] = (unsigned char(*)[512 * 4])original;
+	unsigned char(*original2D)[1024] = (unsigned char(*)[1024])original;
 
 	for (int i = 0; i < 256; i++) {
 		for (int j = 0; j < 256; j++) {
 			if (data2D[i][j] == 75) {
-				if ((i > 0 && j > 0 && data2D[i - 1][j - 1] == 255) ||
-					(i > 0 && data2D[i - 1][j] == 255) ||
-					(i > 0 && j < 255 && data2D[i - 1][j + 1] == 255) ||
-					(j > 0 && data2D[i][j - 1] == 255) ||
-					(j < 255 && data2D[i][j + 1] == 255) ||
-					(i < 255 && j > 0 && data2D[i + 1][j - 1] == 255) ||
-					(i < 255 && data2D[i + 1][j] == 255) ||
-					(i < 255 && j < 255 && data2D[i + 1][j + 1] == 255)) {
-					finalTouch2D[i][4 * j] = 255;
-					finalTouch2D[i][4 * j + 1] = 255;
-					finalTouch2D[i][4 * j + 2] = 255;
-					finalTouch2D[i][4 * j + 3] = original2D[i][4 * j + 3];
+				if ((data2D[(i - 1)][j - 1] == 255) ||
+					(data2D[(i - 1)][j] == 255) ||
+					(data2D[(i - 1)][j + 1] == 255) ||
+					(data2D[i][j - 1] == 255) ||
+					(data2D[i][j + 1] == 255) ||
+					(data2D[(i + 1)][j - 1] == 255) ||
+					(data2D[(i + 1)][j] == 255) ||
+					(data2D[(i + 1)][j + 1] == 255)) {
+					finalTouch2D[i][4 * j] = 255; finalTouch2D[i][4 * j + 1] = 255; finalTouch2D[i][4 * j + 2] = 255; finalTouch2D[i][4 * j + 3] = original2D[i][4 * j + 3];
 				}
 				else {
-					finalTouch2D[i][4 * j] = 0;
-					finalTouch2D[i][4 * j + 1] = 0;
-					finalTouch2D[i][4 * j + 2] = 0;
-					finalTouch2D[i][4 * j + 3] = original2D[i][4 * j + 3];
+					finalTouch2D[i][4 * j] = 0; finalTouch2D[i][4 * j + 1] = 0; finalTouch2D[i][4 * j + 2] = 0; finalTouch2D[i][4 * j + 3] = original2D[i][4 * j + 3];
 				}
 			}
 			else {
-				finalTouch2D[i][4 * j] = data2D[i][j];
-				finalTouch2D[i][4 * j + 1] = data2D[i][j];
-				finalTouch2D[i][4 * j + 2] = data2D[i][j];
-				finalTouch2D[i][4 * j + 3] = original2D[i][4 * j + 3];
+				finalTouch2D[i][4 * j] = data2D[i][j]; finalTouch2D[i][4 * j + 1] = data2D[i][j]; finalTouch2D[i][4 * j + 2] = data2D[i][j]; finalTouch2D[i][4 * j + 3] = original2D[i][4 * j + 3];
 			}
 		}
 	}
-	saveToFile("../img4.txt", finalTouch, 512 * 512 * 4, 0);
+	saveToFile("../img4.txt", finalTouch, 512 * 512, 0);
 	return finalTouch;
 }
 
@@ -103,13 +93,18 @@ unsigned char* threshold(unsigned char* data, unsigned char* original) {
 	unsigned char(*data2D)[256] = (unsigned char(*)[256])data;
 	for (int i = 0; i < 256; i++) {
 		for (int j = 0; j < 256; j++) {
-			if (data2D[i][j] >= 180) threshold2D[i][j] = 255;
-			else if (data2D[i][j] <= 25) threshold2D[i][j] = 0;
-			else threshold2D[i][j] = 75;
+			// Adjusted thresholding values for showing more edges
+			if (data2D[i][j] >= 120)
+				threshold2D[i][j] = 255;  // Strong edge
+			else if (data2D[i][j] <= 10)
+				threshold2D[i][j] = 0;    // Non-edge
+			else
+				threshold2D[i][j] = 75;   // Weak edge
 		}
 	}
 	return finalTouch(threshold, original);
 }
+
 
 unsigned char* non_max_suppression(unsigned char* data, unsigned char* original) {
 	unsigned char* suppressed = (unsigned char*)calloc(256 * 256 * 4, 1);
@@ -119,50 +114,49 @@ unsigned char* non_max_suppression(unsigned char* data, unsigned char* original)
 	unsigned char(*angle2D)[256] = (unsigned char(*)[256])angle;
 	unsigned char(*data2D)[256] = (unsigned char(*)[256])data;
 
-	// Compute angles and store them in angle2D
 	for (int i = 0; i < 256; i++) {
 		for (int j = 0; j < 256; j++) {
-			angle2D[i][j] = (unsigned char)((atan2(data2D[i][j + 1] - data2D[i][j - 1], 2.0 * data2D[i + 1][j] - 2.0 * data2D[i - 1][j]) * 180.0 / 3.14159265) + 180.0);
+			unsigned char val = data2D[i][j] * (unsigned char)(180 / 3.14);
+			angle2D[i][j] = (val < 0) ? val + 180 : val;
 		}
 	}
 
-	// Perform non-maximum suppression
 	for (int i = 1; i < 255; i++) {
 		for (int j = 1; j < 255; j++) {
-			int q = 255;
-			int r = 255;
+			try {
+				int q = 255;
+				int r = 255;
 
-			// Quantize angles to 0, 45, 90, and 135 degrees
-			int angleQuantized = (int)(angle2D[i][j] / 45) * 45;
+				//angle 0
+				if ((0 <= angle2D[i][j] < 22.5) | (157.5 <= angle2D[i][j] <= 180))
+				{
+					q = data2D[i][j + 1];
+					r = data2D[i][j - 1];
+				}
+				else if (22.5 <= angle2D[i][j] < 67.5) {
 
-			if (angleQuantized == 0 || angleQuantized == 180) {
-				q = data2D[i][j + 1];
-				r = data2D[i][j - 1];
+					q = data2D[i + 1][j - 1];
+					r = data2D[i - 1][j + 1];
+					//angle 90
+				}
+				else if (67.5 <= angle2D[i][j] < 112.5) {
+					q = data2D[i + 1][j];
+					r = data2D[i - 1][j];
+					//angle2D 135
+				}
+				else if (112.5 <= angle2D[i][j] < 157.5) {
+					q = data2D[i - 1][j - 1];
+					r = data2D[i + 1][j + 1];
+				}
+				if ((data2D[i][j] >= q) & (data2D[i][j] >= r)) {
+					suppression2D[i][j] = data2D[i][j];
+				}
+				else suppression2D[i][j] = 0;
 			}
-			else if (angleQuantized == 45) {
-				q = data2D[i + 1][j - 1];
-				r = data2D[i - 1][j + 1];
-			}
-			else if (angleQuantized == 90) {
-				q = data2D[i + 1][j];
-				r = data2D[i - 1][j];
-			}
-			else if (angleQuantized == 135) {
-				q = data2D[i - 1][j - 1];
-				r = data2D[i + 1][j + 1];
-			}
-
-			// Perform non-maximum suppression
-			if ((data2D[i][j] >= q) && (data2D[i][j] >= r)) {
-				suppression2D[i][j] = data2D[i][j];
-			}
-			else {
-				suppression2D[i][j] = 0;
-			}
+			catch (const std::exception&) {}
 		}
 	}
 
-	// Copy suppressed edges to the output and apply thresholding
 	for (int i = 0, counter = 0; i < 256; i++) {
 		for (int j = 0; j < 256; j++, counter += 4) {
 			suppressed[counter] = suppression2D[i][j];
@@ -171,17 +165,14 @@ unsigned char* non_max_suppression(unsigned char* data, unsigned char* original)
 			suppressed[counter + 3] = original[counter + 3];
 		}
 	}
-
-	free(suppression);
-	free(angle);
-
-	return threshold(suppressed, original);
+	return threshold(suppression, original);
 }
 
 
 unsigned char* edgeIt(unsigned char* data) {
-	char* dataNoAlpha = (char*)averageRGB(data, 512 * 512);
+	char* dataNoAlpha = (char*)averageRGB(data, 512*512);
 	unsigned char* edge = (unsigned char*)malloc(256 * 256);
+	printf("here 1");
 	int counter = 0;
 	for (int i = 0; i < 256; i++) {
 		for (int j = 0; j < 256; j++, counter++) {
@@ -193,6 +184,7 @@ unsigned char* edgeIt(unsigned char* data) {
 			edge[counter] = val;
 		}
 	}
+	printf("here 2");
 	return non_max_suppression(edge, data);
 }
 
@@ -221,7 +213,7 @@ unsigned char* halfToneIt(unsigned char* data) {
 
 unsigned char* floydIt(unsigned char* data) {
 	unsigned char floyd[512][512];
-	char* dataNoAlpha = (char*)averageRGB(data, 512 * 512);
+	char* dataNoAlpha = (char*)averageRGB(data, 256 * 256 * 4);
 	char(*data2D)[256] = (char(*)[256])dataNoAlpha;
 
 	for (int y = 256; y >= 0; y--) {
@@ -230,19 +222,19 @@ unsigned char* floydIt(unsigned char* data) {
 			int newPixel = oldPixel / 255;
 			floyd[x][y] = newPixel;
 			int quant_error = oldPixel - newPixel;
-			floyd[x + 1][y] = data2D[x + 1][y] + quant_error * 7 / 16;
-			floyd[x - 1][y + 1] = data2D[x - 1][y + 1] + quant_error * 0.5 / 16;
-			floyd[x][y + 1] = data2D[x][y + 1] + quant_error * 5 / 16;
-			floyd[x + 1][y + 1] = data2D[x + 1][y + 1] + quant_error * 3 / 16;
+			floyd[x + 1][y] = data2D[x + 1][y] + quant_error * 7 / 8;   // Increase scaling factor
+			floyd[x - 1][y + 1] = data2D[x - 1][y + 1] + quant_error * 1 / 16;   // Increase scaling factor
+			floyd[x][y + 1] = data2D[x][y + 1] + quant_error * 15 / 16;   // Increase scaling factor
+			floyd[x + 1][y + 1] = data2D[x + 1][y + 1] + quant_error * 13 / 16;   // Increase scaling factor
 		}
 	}
-	unsigned char* floyded = (unsigned char*)malloc(512 * 512);
+	unsigned char* floyded = (unsigned char*)malloc(256 * 256*4);
 	for (int i = 0, counter = 0; i < 256; i++) {
 		for (int j = 0; j < 256; j++, counter += 4) {
 			floyded[counter] = floyd[i][j]; floyded[counter + 1] = floyd[i][j]; floyded[counter + 2] = floyd[i][j]; floyded[counter + 3] = data[counter + 3];
 		}
 	}
-	saveToFile("../img6.txt", floyded, 512 * 512, 1);
+	saveToFile("../img6.txt", floyded, 256 * 256*4, 1);
 	return floyded;
 }
 
@@ -294,20 +286,20 @@ int main(int argc,char *argv[])
 
 	
 	unsigned char* data2 = edgeIt(data);
-	//scn->AddTexture(256, 256, data2);
-	//scn->SetShapeTex(0, 1);
-	//scn->CustomDraw(1, 0, scn->BACK, false, false, 1);
+	scn->AddTexture(256, 256, data2);
+	scn->SetShapeTex(0, 1);
+	scn->CustomDraw(1, 0, scn->BACK, false, false, 1);
 
 	
 	unsigned char* data3 = halfToneIt(data);
 	scn->AddTexture(512, 512, data3);
-	scn->SetShapeTex(0, 1);
+	scn->SetShapeTex(0, 2);
 	scn->CustomDraw(1, 0, scn->BACK, false, false, 2);
 
 	
 	unsigned char* data4 = floydIt(data);
 	scn->AddTexture(256, 256, data4);
-	scn->SetShapeTex(0, 2);
+	scn->SetShapeTex(0, 3);
 	scn->CustomDraw(1, 0, scn->BACK, false, false, 3);
 
 	scn->Motion();
