@@ -4,7 +4,7 @@
 #include "../res/includes/glm/glm.hpp"
 #include <stb_image.h>
 
-unsigned char* averageRGB(unsigned char* data, int size) {
+unsigned char* averageColor(unsigned char* data, int size) {
 	unsigned char* average = (unsigned char*)malloc(size / 4);
 	for (int i = 0; i < size / 4; i++) {
 		average[i] = (data[4 * i] + data[4 * i + 1] + data[4 * i + 2]) / 3;
@@ -14,46 +14,30 @@ unsigned char* averageRGB(unsigned char* data, int size) {
 
 void saveToFile(char* fileName, unsigned char* data, int size, int floyd) {
 	FILE* file = fopen(fileName, "w");
-	unsigned char* dataNoAlpha = averageRGB(data, size);
+	unsigned char* imageNoAlpha = averageColor(data, size);
 	for (int i = 0; i < size / 4 - 1; i++) {
-		if (!floyd) (dataNoAlpha[i] == 0) ? fprintf(file, "0,") : fprintf(file, "1,");
-		else fprintf(file, "%d,", dataNoAlpha[i] / 16);
+		if (!floyd) (imageNoAlpha[i] == 0) ? fprintf(file, "0,") : fprintf(file, "1,");
+		else fprintf(file, "%d,", imageNoAlpha[i] / 16);
 	}
-	(dataNoAlpha[size / 4 - 2] == 0) ? fprintf(file, "0") : fprintf(file, "1");
+	(imageNoAlpha[size / 4 - 2] == 0) ? fprintf(file, "0") : fprintf(file, "1");
 	fclose(file);
 }
 
-unsigned char* grayIt(unsigned char* data) {
+unsigned char* grayScaleFunc(unsigned char* data) {
 	unsigned char* grayScale = (unsigned char*)malloc(512 * 512);
 	for (int i = 0, counter = 0; i < 256; i++) {
 		for (int j = 0; j < 256; j++, counter += 4) {
-			unsigned char val = (unsigned char)(data[4 * (i * 256 + j)] * 0.3 + data[4 * (i * 256 + j) + 1] * 0.58 + data[4 * (i * 256 + j) + 2] * 0.11);
-			grayScale[counter] = val;
-			grayScale[counter + 1] = val;
-			grayScale[counter + 2] = val;
-			grayScale[counter + 3] = val;
+			unsigned char grayval = (unsigned char)(data[4 * (i * 256 + j)] * 0.3 + 
+				data[4 * (i * 256 + j) + 1] * 0.58 + data[4 * (i * 256 + j) + 2] * 0.11);
+			grayScale[counter] = grayval;
+			grayScale[counter + 1] = grayval;
+			grayScale[counter + 2] = grayval;
+			grayScale[counter + 3] = grayval;
 		}
 	}
 	return grayScale;
 }
 
-unsigned char* grayIt(unsigned char* data, int width, int height) {
-	
-	unsigned char* grayScale = (unsigned char*)malloc(width * height);
-	
-	
-	for (int i = 0; i < height; i++) {
-		for (int j = 0; j < width; j++) {
-			unsigned char val = (unsigned char)(
-				data[i * width + j] * 0.3 +
-				data[i * width + j] * 0.58 +
-				data[i * width + j] * 0.11);
-
-			grayScale[i * width + j] = val;
-		}
-	}
-	return grayScale;
-}
 
 unsigned char* finalTouch(unsigned char* data, unsigned char* original) {
 	unsigned char* finalTouch = (unsigned char*)calloc(512 * 512, 1);
@@ -106,7 +90,8 @@ unsigned char* threshold(unsigned char* data, unsigned char* original) {
 }
 
 
-unsigned char* non_max_suppression(unsigned char* data, unsigned char* original) {
+unsigned char* nms(unsigned char* data, unsigned char* original) {//non max suppression
+
 	unsigned char* suppressed = (unsigned char*)calloc(256 * 256 * 4, 1);
 	unsigned char* suppression = (unsigned char*)calloc(256 * 256, 1);
 	unsigned char* angle = (unsigned char*)calloc(256 * 256, 1);
@@ -169,8 +154,8 @@ unsigned char* non_max_suppression(unsigned char* data, unsigned char* original)
 }
 
 
-unsigned char* edgeIt(unsigned char* data) {
-	char* dataNoAlpha = (char*)averageRGB(data, 512*512);
+unsigned char* cannyEdgeFunc(unsigned char* data) {
+	char* dataNoAlpha = (char*)averageColor(data, 512*512);
 	unsigned char* edge = (unsigned char*)malloc(256 * 256);
 	printf("here 1");
 	int counter = 0;
@@ -185,35 +170,37 @@ unsigned char* edgeIt(unsigned char* data) {
 		}
 	}
 	printf("here 2");
-	return non_max_suppression(edge, data);
+	return nms(edge, data);
 }
 
-unsigned char* halfToneIt(unsigned char* data) {
+unsigned char* halfToneFunc(unsigned char* data) {
 	unsigned char* halftone = (unsigned char*)calloc(512 * 512 * 4, 1);
-	unsigned char* dataNoAlpha = averageRGB(data, 512 * 512);
-	for (int i = 0; i < 256; i++) {//4096
+	unsigned char* dataNoAlpha = averageColor(data, 512 * 512);
+	for (int i = 0; i < 256; i++) {
 		for (int j = 0; j < 256; j++) {
+
 			int val = dataNoAlpha[i * 256 + j] / 51 - 1;
 			halftone[4096 * (i + 1) + j * 8 + 3] = data[512 * i + j];
 			halftone[4096 * i + j * 8 + 4 + 3] = data[512 * i + j];
 			halftone[4096 * (i + 1) + j * 8 + 4 + 3] = data[512 * i + j];
 			halftone[4096 * i + j * 8 + 3] = data[512 * i + j];
+
 			if (val > 0) { halftone[4096 * (i + 1) + j * 8] = 255; halftone[4096 * (i + 1) + j * 8 + 1] = 255; halftone[4096 * (i + 1) + j * 8 + 2] = 255; val--; }
 			if (val > 0) { halftone[4096 * i + j * 8 + 4] = 255; halftone[4096 * i + j * 8 + 1 + 4] = 255; halftone[4096 * i + j * 8 + 2 + 4] = 255; val--; }
 			if (val > 0) { halftone[4096 * (i + 1) + j * 8 + 4] = 255; halftone[4096 * (i + 1) + j * 8 + 1 + 4] = 255; halftone[4096 * (i + 1) + j * 8 + 2 + 4] = 255; val--; }
 			if (val > 0) { halftone[4096 * i + j * 8] = 255; halftone[4096 * i + j * 8 + 1] = 255; halftone[4096 * i + j * 8 + 2] = 255; val--; }
 		}
 	}
-	saveToFile("../img5.txt", halftone, 512 * 512 * 4, 0);
+	saveToFile("../img5.txt", halftone, 256 * 256 * 4 * 4, 0);
 	return halftone;
 }
 
 
 
 
-unsigned char* floydIt(unsigned char* data) {
+unsigned char* floydFunc(unsigned char* data) {
 	unsigned char floyd[512][512];
-	char* dataNoAlpha = (char*)averageRGB(data, 256 * 256 * 4);
+	char* dataNoAlpha = (char*)averageColor(data, 256 * 256 * 4);
 	char(*data2D)[256] = (char(*)[256])dataNoAlpha;
 
 	for (int y = 256; y >= 0; y--) {
@@ -228,17 +215,19 @@ unsigned char* floydIt(unsigned char* data) {
 			floyd[x + 1][y + 1] = data2D[x + 1][y + 1] + quant_error * 13 / 16;   // Increase scaling factor
 		}
 	}
-	unsigned char* floyded = (unsigned char*)malloc(256 * 256*4);
+	unsigned char* floyed = (unsigned char*)malloc(256 * 256*4);
 	for (int i = 0, counter = 0; i < 256; i++) {
 		for (int j = 0; j < 256; j++, counter += 4) {
-			floyded[counter] = floyd[i][j]; floyded[counter + 1] = floyd[i][j]; floyded[counter + 2] = floyd[i][j]; floyded[counter + 3] = data[counter + 3];
+			floyed[counter] = floyd[i][j]; floyed[counter + 1] = floyd[i][j];
+			floyed[counter + 2] = floyd[i][j];
+			floyed[counter + 3] = data[counter + 3];
 		}
 	}
-	saveToFile("../img6.txt", floyded, 256 * 256*4, 1);
-	return floyded;
+	saveToFile("../img6.txt", floyed, 256 * 256*4, 1);
+	return floyed;
 }
 
-void printData(unsigned char* data, int width, int height, int numComponents) {
+void printData(unsigned char* data, int width, int height, int numComponents) {//debug function
 	printf("Image Data:\n");
 	
 
@@ -279,25 +268,25 @@ int main(int argc,char *argv[])
 	
 	printData(data, width, height, numComponents); //there is data
 
-	unsigned char* data1 = grayIt(data);
+	unsigned char* data1 = grayScaleFunc(data);
 	scn->AddTexture(width, height, data1);
 	scn->SetShapeTex(0, 0);
 	scn->CustomDraw(1, 0, scn->BACK, true, false, 0);
 
 	
-	unsigned char* data2 = edgeIt(data);
+	unsigned char* data2 = cannyEdgeFunc(data);
 	scn->AddTexture(256, 256, data2);
 	scn->SetShapeTex(0, 1);
 	scn->CustomDraw(1, 0, scn->BACK, false, false, 1);
 
 	
-	unsigned char* data3 = halfToneIt(data);
+	unsigned char* data3 = halfToneFunc(data);
 	scn->AddTexture(512, 512, data3);
 	scn->SetShapeTex(0, 2);
 	scn->CustomDraw(1, 0, scn->BACK, false, false, 2);
 
 	
-	unsigned char* data4 = floydIt(data);
+	unsigned char* data4 = floydFunc(data);
 	scn->AddTexture(256, 256, data4);
 	scn->SetShapeTex(0, 3);
 	scn->CustomDraw(1, 0, scn->BACK, false, false, 3);
